@@ -2,24 +2,19 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { createAppointment } from "../../services/appointmentService";
 import { isAuthenticated } from "../../services/auth";
-import { requestJson } from "../../services/api";
 import "./PaymentPage.css";
-//  this is the payment page where patient can pay for the appointment after selecting date and time. It uses Razorpay as the payment gateway and handles the payment process, including success and error scenarios.
-// Payment page for doctor appointment booking using Razorpay gateway
+
 const PaymentPage = () => {
   const navigate = useNavigate();
-  // Retrieve appointment details (date, time) from navigation state
   const location = useLocation();
   const { id: doctorIdParam } = useParams();
 
-  // Payment processing and success state
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Extract appointment details from route state (passed from BookAppointment)
   const { selectedDate, selectedTime } = location.state || {};
-  // Calculate total with tax
+
   const mockFee = 1000.0;
   const mockTax = 180.0;
   const total = mockFee + mockTax;
@@ -31,7 +26,6 @@ const PaymentPage = () => {
         state: { from: `/patient/book-appointment/${doctorIdParam}` },
       });
     } else if (!selectedDate || !selectedTime) {
-      // If user navigates directly without passing through config flow, redirect back
       navigate(`/patient/book-appointment/${doctorIdParam}`, { replace: true });
     }
   }, [doctorIdParam, navigate, selectedDate, selectedTime]);
@@ -41,74 +35,34 @@ const PaymentPage = () => {
     setErrorMessage("");
 
     try {
-      // Load Razorpay script dynamically and trigger payment flow
-      const data = await requestJson("/payments/create-order", {
-        method: "POST",
-        body: JSON.stringify({ amount: total }),
+      // Simulate a brief processing delay, then mark as successful
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      await createAppointment({
+        doctorId: doctorIdParam,
+        date: selectedDate,
+        time: selectedTime,
+        paymentId: `mock_pay_${Date.now()}`,
       });
 
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: data.amount,
-        currency: "INR",
-        name: "MediConnect",
-        description: "Doctor Appointment",
-        order_id: data.id,
-        modal: {
-          ondismiss: () => {
-            setErrorMessage("Payment cancelled by user.");
-          },
-        },
-        // Razorpay success handler: create appointment after successful payment
-        handler: async (response) => {
-          try {
-            setPaymentSuccess(true);
-            await createAppointment({
-              doctorId: doctorIdParam,
-              date: selectedDate,
-              time: selectedTime,
-              paymentId: response.razorpay_payment_id,
-            });
-            setTimeout(() => {
-              navigate("/patient/my-appointments");
-            }, 2000);
-          } catch (err) {
-            setErrorMessage(
-              err.message || "Could not book appointment after payment.",
-            );
-          }
-        },
-        prefill: {
-          name: "John Doe",
-          email: "john.doe@example.com",
-        },
-        theme: {
-          color: "#16a085",
-        },
-      };
+      setPaymentSuccess(true);
 
-      if (!window.Razorpay) {
-        setErrorMessage("Payment gateway not loaded.");
-        setIsProcessing(false);
-        return;
-      }
-
-      const razor = new window.Razorpay(options);
-      razor.open();
+      setTimeout(() => {
+        navigate("/patient/my-appointments");
+      }, 2000);
     } catch (err) {
-      console.error(err);
-      setErrorMessage(err.message || "Payment failed. Please try again.");
+      setErrorMessage(err.message || "Could not book appointment. Please try again.");
     } finally {
       setIsProcessing(false);
     }
   };
 
   const handleCancelPayment = () => {
-    navigate(-1); // Go back to the booking page
+    navigate(-1);
   };
 
   if (!selectedDate || !selectedTime) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   return (
@@ -141,9 +95,7 @@ const PaymentPage = () => {
               onClick={handlePayNow}
               disabled={isProcessing}
             >
-              {isProcessing
-                ? "Processing Payment..."
-                : `Pay ₹${total.toFixed(2)}`}
+              {isProcessing ? "Processing Payment..." : `Pay ₹${total.toFixed(2)}`}
             </button>
             <button
               className="cancel-btn"
