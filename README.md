@@ -134,6 +134,13 @@ Base URL: `/api`
 * Frontend can be deployed on platforms like Vercel
 
 ---
+✅ Final Summary
+ServiceURLStatusFrontendhttps://medi-connect-doctor-project-k8.vercel.app✅ LiveBackendhttps://mediconnect-doctor-project-k8.onrender.com✅ LiveDatabaseMongoDB Atlas✅ Connected
+
+🔑 Admin Login
+Email: admin@mediconnect.com
+Password: Admin@123
+
 
 ## Future Improvements
 
